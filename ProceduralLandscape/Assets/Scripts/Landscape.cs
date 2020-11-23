@@ -4,6 +4,11 @@ using UnityEngine;
 
 public class Landscape : MonoBehaviour
 {
+
+    public enum DrawMode { NoiseMap, ColorMap}
+    public DrawMode drawMode;
+
+    [Header("HeightMap Parameters")]
     public int width;
     public int height;
     public float scale;
@@ -11,10 +16,11 @@ public class Landscape : MonoBehaviour
     [Range(0,1)]
     public float persistence;
     public float lacunarity;
-
-
     public int seed;
     public Vector2 offset;
+
+    [Header("Landscape Parameter")]
+    public LandscapeType[] landscapeType;
 
 
     public bool autoUpdate;
@@ -23,8 +29,31 @@ public class Landscape : MonoBehaviour
     {
         float[,] heightMap = Util.CreatePerlinNoiseMap(width, height, seed, scale, octaves, persistence, lacunarity, offset);
 
+        Color[] mapColor = new Color[width*height];
+
+        for (int j = 0; j < height; j++) {
+            for (int i = 0; i < width; i++)
+            {
+                float currentHeight = heightMap[i, j];
+                for (int k = 0; k < landscapeType.Length; k++)
+                {
+                    if (currentHeight <= landscapeType[k].height)
+                    {
+                        mapColor[j * width + i] = landscapeType[k].color;
+                        break;
+                    }
+                }
+            }
+        }
         MapDisplay display = FindObjectOfType<MapDisplay>();
-        display.DrawMap(heightMap);
+
+        if (drawMode == DrawMode.NoiseMap)
+        {
+            display.DrawMap(Util.textureGenerator(heightMap,FilterMode.Point));
+        } else if (drawMode == DrawMode.ColorMap)
+        {
+            display.DrawMap(Util.textureGenerator(mapColor,width,height,FilterMode.Point));
+        }
     }
 
     public void OnValidate()
@@ -47,4 +76,13 @@ public class Landscape : MonoBehaviour
         }
         //persistence = Mathf.Clamp(persistence, 0f, 1f);
     }
+}
+
+
+[System.Serializable]
+public class LandscapeType
+{
+    public string name;
+    public float height;
+    public Color color;
 }

@@ -74,4 +74,31 @@ public static class Util
         }
         return heightMap;
     }
+
+    public static Texture2D textureGenerator(Color[] colorMap, int width, int height,FilterMode filtermode = FilterMode.Bilinear)
+    {
+        Texture2D texture = new Texture2D(width, height);
+        texture.filterMode = filtermode;
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.SetPixels(colorMap);
+        texture.Apply();
+        return texture;
+    }
+
+    public static Texture2D textureGenerator(float [,] map, FilterMode mode = FilterMode.Bilinear)
+    {
+        int width = map.GetLength(0);
+        int height = map.GetLength(1);
+        Color[] colorMap = new Color[width * height];
+
+        for (int j = 0; j < height; j++)
+        {
+            for (int i = 0; i < width; i++)
+            {
+                colorMap[j * width + i] = Color.Lerp(Color.black, Color.white, map[i, j]);
+            }
+        }
+        return textureGenerator(colorMap,width,height,mode);
+    }
+
 }

@@ -6,25 +6,12 @@ public class MapDisplay : MonoBehaviour
 {
     public Renderer textureRenderer;
 
-    public void DrawMap(float[,] map)
+    public void DrawMap(Texture2D texture)
     {
-        int width = map.GetLength(0);
-        int height = map.GetLength(1);
-
-        Texture2D texture = new Texture2D(width, height);
-        Color[] colorMap = new Color[width * height];
-
-        for (int j = 0; j < height; j++)
-        {
-            for (int i = 0; i < width; i++)
-            {
-                colorMap[j * width + i] = Color.Lerp(Color.black, Color.white, map[i, j]);
-            }
-        }
-        texture.SetPixels(colorMap);
-        texture.Apply();
-
+        int width = texture.width;
+        int height = texture.height;
         textureRenderer.sharedMaterial.mainTexture = texture;
         textureRenderer.transform.localScale = new Vector3(width,1, height);
     }
+
 }
