@@ -8,6 +8,7 @@ public class Landscape : MonoBehaviour
     public int height;
     public float scale;
     public int octaves;
+    [Range(0,1)]
     public float persistence;
     public float lacunarity;
 
@@ -24,5 +25,26 @@ public class Landscape : MonoBehaviour
 
         MapDisplay display = FindObjectOfType<MapDisplay>();
         display.DrawMap(heightMap);
+    }
+
+    public void OnValidate()
+    {
+        if (width < 1)
+        {
+            width = 1;
+        }
+        if (height < 1)
+        {
+            height = 1;
+        }
+        if (lacunarity < 1)
+        {
+            lacunarity = 1;
+        }
+        if (octaves < 0)
+        {
+            octaves = 0;
+        }
+        //persistence = Mathf.Clamp(persistence, 0f, 1f);
     }
 }

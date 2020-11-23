@@ -28,6 +28,11 @@ public static class Util
         float minHeight = float.MaxValue;
         float maxHeight = float.MinValue;
 
+        float halfWidth = width / 2f;
+        float halfHeight = height / 2f;
+
+
+
         for (int i = 0; i < width; i++)
         {
             for (int j = 0; j < height; j++)
@@ -39,8 +44,8 @@ public static class Util
 
                 for (int k = 0; k < octaves; k++)
                 {
-                    float Scalei = i / scale * frequency + octavesOffsets[k].x;
-                    float Scalej = j / scale * frequency + octavesOffsets[k].y;
+                    float Scalei = (i - halfWidth) / scale * frequency + octavesOffsets[k].x;
+                    float Scalej = (j - halfHeight) / scale * frequency + octavesOffsets[k].y;
                     float perlinValue = Mathf.PerlinNoise(Scalei, Scalej) * 2 - 1;
                     noiseHeight += perlinValue * amplitude;
                     
