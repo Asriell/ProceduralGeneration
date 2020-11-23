@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public static class Util
 {
@@ -109,4 +110,63 @@ public static class Util
         textureRenderer.transform.localScale = new Vector3(width, 1, height);
     }
 
+    public static MeshDatas GenerateMesh(float[,] heightMap)
+    {
+        int width = heightMap.GetLength(0);
+        int height = heightMap.GetLength(1);
+        float topLeftX = (width - 1f) / (-2f);
+        float topLeftZ = (height - 1f) / 2f;
+        MeshDatas mesh = new MeshDatas(width, height);
+
+        int vertexIndex = 0;
+        for (int j = 0; j < height; j++)
+        {
+            for (int i = 0; i < width; i++)
+            {
+
+                mesh.vertices[vertexIndex] = new Vector3(topLeftX + i, heightMap[i, j]*100 , topLeftZ - j);
+                mesh.uvs[vertexIndex] = new Vector2(i / (float)width, j / (float)height);
+
+                if (i < width - 1 && j < height - 1)
+                {
+                    mesh.AddTriangle(vertexIndex, vertexIndex + width + 1, vertexIndex + width);
+                    mesh.AddTriangle(vertexIndex + width + 1, vertexIndex, vertexIndex + 1);
+                }
+
+                vertexIndex++;
+            }
+        }
+        return mesh;
+    }
 }
+
+public class MeshDatas
+{
+    public Vector3[] vertices;
+    public List<int> triangles;
+    public Vector2[] uvs;
+
+    public MeshDatas(int width, int height)
+    {
+        vertices = new Vector3[width * height];
+        uvs = new Vector2[width * height];
+        triangles = new List<int>();
+    }
+
+    public void AddTriangle(int a, int b, int c)
+    {
+        triangles.Add(a);
+        triangles.Add(b);
+        triangles.Add(c);
+    }
+
+    public Mesh CreateMesh()
+    {
+        Mesh mesh = new Mesh();
+        mesh.vertices = vertices;
+        mesh.triangles = triangles.ToArray();
+        mesh.uv = uvs;
+        mesh.RecalculateNormals();
+        return mesh;
+    }
+} 

@@ -5,7 +5,7 @@ using UnityEngine;
 public class Landscape : MonoBehaviour
 {
 
-    public enum DrawMode { NoiseMap, ColorMap}
+    public enum DrawMode { NoiseMap, ColorMap, Mesh}
     public DrawMode drawMode;
 
     [Header("HeightMap Parameters")]
@@ -53,6 +53,10 @@ public class Landscape : MonoBehaviour
         } else if (drawMode == DrawMode.ColorMap)
         {
             display.DrawMap(Util.textureGenerator(mapColor,width,height,FilterMode.Point));
+        }
+        else if (drawMode == DrawMode.Mesh)
+        {
+            display.DrawMeshes(Util.GenerateMesh(heightMap), Util.textureGenerator(mapColor, width, height, FilterMode.Point));
         }
     }
 
