@@ -4,9 +4,21 @@ using UnityEngine;
 
 public static class Util
 {
-    public static float[,] CreatePerlinNoiseMap(int width, int height,float scale, int octaves = 0, float persistence = 1, float lacunarity = 1)
+    public static float[,] CreatePerlinNoiseMap(int width, int height, int seed, float scale, int octaves = 0, float persistence = 1, float lacunarity = 1, Vector2? offset = null)
     {
+        Vector2 offsetVal = offset ?? Vector2.zero;
         float[,] heightMap = new float[width, height];
+
+        System.Random rng = new System.Random(seed);
+
+        Vector2[] octavesOffsets = new Vector2[octaves];
+
+        for (int i = 0; i < octaves; i++)
+        {
+            float offsetX = rng.Next(-100000,100000) + offsetVal.x;
+            float offsetY = rng.Next(-100000, 100000) + offsetVal.y;
+            octavesOffsets[i] = new Vector2(offsetX, offsetY);
+        }
 
         if (scale <= 0)
         {
@@ -27,8 +39,8 @@ public static class Util
 
                 for (int k = 0; k < octaves; k++)
                 {
-                    float Scalei = i / scale * frequency;
-                    float Scalej = j / scale * frequency;
+                    float Scalei = i / scale * frequency + octavesOffsets[k].x;
+                    float Scalej = j / scale * frequency + octavesOffsets[k].y;
                     float perlinValue = Mathf.PerlinNoise(Scalei, Scalej) * 2 - 1;
                     noiseHeight += perlinValue * amplitude;
                     

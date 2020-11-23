@@ -11,11 +11,16 @@ public class Landscape : MonoBehaviour
     public float persistence;
     public float lacunarity;
 
+
+    public int seed;
+    public Vector2 offset;
+
+
     public bool autoUpdate;
 
     public void Generate()
     {
-        float[,] heightMap = Util.CreatePerlinNoiseMap(width, height, scale, octaves, persistence, lacunarity);
+        float[,] heightMap = Util.CreatePerlinNoiseMap(width, height, seed, scale, octaves, persistence, lacunarity, offset);
 
         MapDisplay display = FindObjectOfType<MapDisplay>();
         display.DrawMap(heightMap);
