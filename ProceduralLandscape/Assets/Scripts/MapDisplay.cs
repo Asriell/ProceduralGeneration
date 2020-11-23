@@ -8,10 +8,11 @@ public class MapDisplay : MonoBehaviour
 
     public void DrawMap(Texture2D texture)
     {
-        int width = texture.width;
+        /*int width = texture.width;
         int height = texture.height;
         textureRenderer.sharedMaterial.mainTexture = texture;
-        textureRenderer.transform.localScale = new Vector3(width,1, height);
+        textureRenderer.transform.localScale = new Vector3(width,1, height);*/
+        Util.RenderMap(textureRenderer, texture);
     }
 
 }

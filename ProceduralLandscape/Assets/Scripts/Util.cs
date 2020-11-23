@@ -101,4 +101,12 @@ public static class Util
         return textureGenerator(colorMap,width,height,mode);
     }
 
+    public static void RenderMap(Renderer textureRenderer, Texture2D texture)
+    {
+        int width = texture.width;
+        int height = texture.height;
+        textureRenderer.sharedMaterial.mainTexture = texture;
+        textureRenderer.transform.localScale = new Vector3(width, 1, height);
+    }
+
 }
