@@ -110,18 +110,29 @@ public static class Util
         textureRenderer.transform.localScale = new Vector3(width, 1, height);
     }
 
-    public static MeshDatas GenerateMesh(float[,] heightMap,float heightRate = 1, AnimationCurve heightCurve = null)
+    public static MeshDatas GenerateMesh(float[,] heightMap,float heightRate = 1, AnimationCurve heightCurve = null, int levelOfDetail = 0)
     {
         int width = heightMap.GetLength(0);
         int height = heightMap.GetLength(1);
         float topLeftX = (width - 1f) / (-2f);
         float topLeftZ = (height - 1f) / 2f;
-        MeshDatas mesh = new MeshDatas(width, height);
 
-        int vertexIndex = 0;
-        for (int j = 0; j < height; j++)
+
+        int meshDetails = levelOfDetail * 2;
+        if (meshDetails == 0)
         {
-            for (int i = 0; i < width; i++)
+            meshDetails = 1;
+        }
+
+        int verticePerLine = (width - 1) / meshDetails + 1;
+        int verticePerColumns = (height - 1) / meshDetails + 1;
+
+
+        MeshDatas mesh = new MeshDatas(verticePerLine, verticePerColumns);
+        int vertexIndex = 0;
+        for (int j = 0; j < height; j+= meshDetails)
+        {
+            for (int i = 0; i < width; i+=meshDetails)
             {
                 if (heightCurve == null)
                 {
@@ -134,8 +145,8 @@ public static class Util
 
                 if (i < width - 1 && j < height - 1)
                 {
-                    mesh.AddTriangle(vertexIndex, vertexIndex + width + 1, vertexIndex + width);
-                    mesh.AddTriangle(vertexIndex + width + 1, vertexIndex, vertexIndex + 1);
+                    mesh.AddTriangle(vertexIndex, vertexIndex + verticePerLine + 1, vertexIndex + verticePerLine);
+                    mesh.AddTriangle(vertexIndex + verticePerLine + 1, vertexIndex, vertexIndex + 1);
                 }
 
                 vertexIndex++;

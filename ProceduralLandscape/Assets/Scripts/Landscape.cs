@@ -9,8 +9,11 @@ public class Landscape : MonoBehaviour
     public DrawMode drawMode;
 
     [Header("HeightMap & Mesh Parameters")]
-    public int width;
-    public int height;
+    const int mapChunkSize = 241;
+    [Range(0,6)]
+    public int levelOfDetail;
+    private int width;
+    private int height;
     public float scale;
     public int octaves;
     [Range(0,1)]
@@ -29,6 +32,8 @@ public class Landscape : MonoBehaviour
 
     public void Generate()
     {
+        width = mapChunkSize;
+        height = mapChunkSize;
         float[,] heightMap = Util.CreatePerlinNoiseMap(width, height, seed, scale, octaves, persistence, lacunarity, offset);
 
         Color[] mapColor = new Color[width*height];
@@ -58,20 +63,12 @@ public class Landscape : MonoBehaviour
         }
         else if (drawMode == DrawMode.Mesh)
         {
-            display.DrawMeshes(Util.GenerateMesh(heightMap,heightRateMesh,heightCurve), Util.textureGenerator(mapColor, width, height, FilterMode.Point));
+            display.DrawMeshes(Util.GenerateMesh(heightMap,heightRateMesh,heightCurve, levelOfDetail), Util.textureGenerator(mapColor, width, height, FilterMode.Point));
         }
     }
 
     public void OnValidate()
     {
-        if (width < 1)
-        {
-            width = 1;
-        }
-        if (height < 1)
-        {
-            height = 1;
-        }
         if (lacunarity < 1)
         {
             lacunarity = 1;
