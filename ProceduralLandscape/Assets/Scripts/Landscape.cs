@@ -8,7 +8,7 @@ public class Landscape : MonoBehaviour
     public enum DrawMode { NoiseMap, ColorMap, Mesh}
     public DrawMode drawMode;
 
-    [Header("HeightMap Parameters")]
+    [Header("HeightMap & Mesh Parameters")]
     public int width;
     public int height;
     public float scale;
@@ -18,6 +18,8 @@ public class Landscape : MonoBehaviour
     public float lacunarity;
     public int seed;
     public Vector2 offset;
+    public float heightRateMesh;
+    public AnimationCurve heightCurve;
 
     [Header("Landscape Parameter")]
     public LandscapeType[] landscapeType;
@@ -56,7 +58,7 @@ public class Landscape : MonoBehaviour
         }
         else if (drawMode == DrawMode.Mesh)
         {
-            display.DrawMeshes(Util.GenerateMesh(heightMap), Util.textureGenerator(mapColor, width, height, FilterMode.Point));
+            display.DrawMeshes(Util.GenerateMesh(heightMap,heightRateMesh,heightCurve), Util.textureGenerator(mapColor, width, height, FilterMode.Point));
         }
     }
 

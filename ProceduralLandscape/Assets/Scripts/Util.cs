@@ -110,7 +110,7 @@ public static class Util
         textureRenderer.transform.localScale = new Vector3(width, 1, height);
     }
 
-    public static MeshDatas GenerateMesh(float[,] heightMap)
+    public static MeshDatas GenerateMesh(float[,] heightMap,float heightRate = 1, AnimationCurve heightCurve = null)
     {
         int width = heightMap.GetLength(0);
         int height = heightMap.GetLength(1);
@@ -123,8 +123,13 @@ public static class Util
         {
             for (int i = 0; i < width; i++)
             {
-
-                mesh.vertices[vertexIndex] = new Vector3(topLeftX + i, heightMap[i, j]*100 , topLeftZ - j);
+                if (heightCurve == null)
+                {
+                    mesh.vertices[vertexIndex] = new Vector3(topLeftX + i, heightMap[i, j] * heightRate, topLeftZ - j);
+                } else
+                {
+                    mesh.vertices[vertexIndex] = new Vector3(topLeftX + i, heightCurve.Evaluate(heightMap[i, j]) * heightRate, topLeftZ - j);
+                }
                 mesh.uvs[vertexIndex] = new Vector2(i / (float)width, j / (float)height);
 
                 if (i < width - 1 && j < height - 1)
