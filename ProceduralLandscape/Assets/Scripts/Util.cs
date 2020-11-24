@@ -117,8 +117,9 @@ public static class Util
     }
 
     //Mesh generation, with a heightMap, heightRate, a curve, and a level of details (number of edges)
-    public static MeshDatas GenerateMesh(float[,] heightMap,float heightRate = 1, AnimationCurve heightCurve = null, int levelOfDetail = 0)
+    public static MeshDatas GenerateMesh(float[,] heightMap,float heightRate = 1, AnimationCurve _heightCurve = null, int levelOfDetail = 0)
     {
+        AnimationCurve heightCurve = _heightCurve!= null ? new AnimationCurve(_heightCurve.keys) : null;
         int width = heightMap.GetLength(0);
         int height = heightMap.GetLength(1);
         float topLeftX = (width - 1f) / (-2f);

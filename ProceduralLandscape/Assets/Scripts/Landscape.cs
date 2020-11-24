@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
+using System.Threading;
 
 //Landscape Generation
 public class Landscape : MonoBehaviour
@@ -30,9 +32,88 @@ public class Landscape : MonoBehaviour
 
 
     public bool autoUpdate;//editor auto update
+
+    Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
+    Queue<MapThreadInfo<MeshDatas>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshDatas>>();
     #endregion
+
+    public void DrawMapInEditor()
+    {
+        MapData mapData = DatasGeneration();
+        MapDisplay display = FindObjectOfType<MapDisplay>();
+        //display, depends of the drawmode.
+        if (drawMode == DrawMode.NoiseMap)
+        {
+            display.DrawMap(Util.textureGenerator(mapData.heightMap, FilterMode.Point));
+        }
+        else if (drawMode == DrawMode.ColorMap)
+        {
+            display.DrawMap(Util.textureGenerator(mapData.mapColor, width, height, FilterMode.Point));
+        }
+        else if (drawMode == DrawMode.Mesh)
+        {
+            display.DrawMeshes(Util.GenerateMesh(mapData.heightMap, heightRateMesh, heightCurve, levelOfDetail), Util.textureGenerator(mapData.mapColor, width, height, FilterMode.Point));
+        }
+    }
+
+    public void RequestMapData(Action<MapData> callback)
+    {
+        ThreadStart threadStart = delegate
+        {
+            MapDataThread(callback);
+        };
+        new Thread(threadStart).Start();
+    }
+
+    void MapDataThread(Action<MapData> callback)
+    {
+        MapData mapData = DatasGeneration();
+        lock (mapDataThreadInfoQueue)
+        {
+            mapDataThreadInfoQueue.Enqueue(new MapThreadInfo<MapData>(callback, mapData));
+        }
+    }
+
+    public void RequestMeshDatas(MapData mapData, Action<MeshDatas> callback)
+    {
+        ThreadStart threadStart = delegate
+        {
+            MeshDatasThread(mapData,callback);
+        };
+        new Thread(threadStart).Start();
+    }
+
+    public void MeshDatasThread(MapData mapData, Action<MeshDatas> callback)
+    {
+        MeshDatas meshDatas = Util.GenerateMesh(mapData.heightMap, heightRateMesh, heightCurve,levelOfDetail);
+        lock (meshDataThreadInfoQueue)
+        {
+            meshDataThreadInfoQueue.Enqueue(new MapThreadInfo<MeshDatas>(callback, meshDatas));
+        }
+    }
+
+    private void Update()
+    {
+        if(mapDataThreadInfoQueue.Count > 0)
+        {
+            for (int i = 0; i < mapDataThreadInfoQueue.Count;i++)
+            {
+                MapThreadInfo<MapData> threadInfo = mapDataThreadInfoQueue.Dequeue();
+                threadInfo.callback(threadInfo.parameter);
+            }
+        }
+
+        if (meshDataThreadInfoQueue.Count > 0)
+        {
+            for (int i = 0; i < meshDataThreadInfoQueue.Count; i++)
+            {
+                MapThreadInfo<MeshDatas> threadInfo = meshDataThreadInfoQueue.Dequeue();
+                threadInfo.callback(threadInfo.parameter);
+            }
+        }
+    }
     //Map Generation and display
-    public void Generate()
+    public MapData DatasGeneration()
     {
         width = mapChunkSize;
         height = mapChunkSize;
@@ -54,19 +135,7 @@ public class Landscape : MonoBehaviour
                 }
             }
         }
-        MapDisplay display = FindObjectOfType<MapDisplay>();
-        //display, depends of the drawmode.
-        if (drawMode == DrawMode.NoiseMap)
-        {
-            display.DrawMap(Util.textureGenerator(heightMap,FilterMode.Point));
-        } else if (drawMode == DrawMode.ColorMap)
-        {
-            display.DrawMap(Util.textureGenerator(mapColor,width,height,FilterMode.Point));
-        }
-        else if (drawMode == DrawMode.Mesh)
-        {
-            display.DrawMeshes(Util.GenerateMesh(heightMap,heightRateMesh,heightCurve, levelOfDetail), Util.textureGenerator(mapColor, width, height, FilterMode.Point));
-        }
+        return new MapData(heightMap, mapColor);
     }
 
     //To only have authorized values
@@ -82,6 +151,18 @@ public class Landscape : MonoBehaviour
         }
         //persistence = Mathf.Clamp(persistence, 0f, 1f);
     }
+
+    struct MapThreadInfo<T>
+    {
+        public readonly Action<T> callback;
+        public readonly T parameter;
+
+        public MapThreadInfo(Action <T> _callback, T _parameter)
+        {
+            callback = _callback;
+            parameter = _parameter;
+        }
+    }
 }
 
 //Landscape type, growing order
@@ -91,4 +172,15 @@ public class LandscapeType
     public string name;
     public float height;//beetween 0 and 1 ! Growing order
     public Color color;
+}
+
+public struct MapData
+{
+    public readonly float[,] heightMap;
+    public readonly Color[] mapColor;
+    public MapData(float [,] _heightMap, Color[] _mapColor)
+    {
+        heightMap = _heightMap;
+        mapColor = _mapColor;
+    }
 }

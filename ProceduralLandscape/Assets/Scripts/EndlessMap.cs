@@ -1,12 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Animations;
 
 public class EndlessMap : MonoBehaviour
 {
     public const float maxViewDist = 300;
     public Transform viewer;
-
+    public Material mapMaterial;
+    public Transform parent;
+    static Landscape mapGenerator;
     public static Vector2 viewerPosition;
     private int chunkSize;
     private int chunksVisibleInViewDist;
@@ -16,6 +19,7 @@ public class EndlessMap : MonoBehaviour
 
     public void Start()
     {
+        mapGenerator = FindObjectOfType<Landscape>();
         chunkSize = Landscape.mapChunkSize - 1;
         chunksVisibleInViewDist = Mathf.RoundToInt(maxViewDist / chunkSize);
     }
@@ -48,7 +52,7 @@ public class EndlessMap : MonoBehaviour
                     terrainChunkDictionary[viewedChunkCoord].UpdateChunk();
                 } else
                 {
-                    terrainChunkDictionary.Add(viewedChunkCoord, new Chunk(viewedChunkCoord,chunkSize));
+                    terrainChunkDictionary.Add(viewedChunkCoord, new Chunk(viewedChunkCoord,chunkSize,mapMaterial));
                 }
                 chunksVisiblesLastUpdate.Add(terrainChunkDictionary[viewedChunkCoord]);
             }
@@ -60,14 +64,38 @@ public class EndlessMap : MonoBehaviour
         public Vector2 position;
         public Bounds bounds;
 
-        public Chunk(Vector2 coords, int size)
+        public MapData mapData;
+
+        public MeshRenderer meshRenderer;
+        public MeshFilter meshFilter;
+
+        public Chunk(Vector2 coords, int size, Material material,Transform parent = null)
         {
             position = coords * size;
             bounds = new Bounds(position, Vector2.one * size);
             Vector3 positionVector3 = new Vector3(position.x, 0, position.y);
-            mesh = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            mesh = new GameObject("Chunk");
+            meshRenderer = mesh.AddComponent<MeshRenderer>();
+            meshFilter = mesh.AddComponent<MeshFilter>();
+            meshRenderer.material = material;
             mesh.transform.position = positionVector3;
-            mesh.transform.localScale = Vector3.one * size / 10;
+            
+            if (parent != null)
+            {
+                mesh.transform.parent = parent;
+            }
+
+            mapGenerator.RequestMapData(OnMapDataReceived);
+        }
+
+        public void OnMapDataReceived(MapData mapData)
+        {
+            mapGenerator.RequestMeshDatas(mapData, OnMeshDataReceived);
+        }
+
+        public void OnMeshDataReceived(MeshDatas meshDatas)
+        {
+            meshFilter.mesh = meshDatas.CreateMesh();
         }
 
         public void UpdateChunk()
