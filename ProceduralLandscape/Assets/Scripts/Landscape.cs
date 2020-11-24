@@ -10,7 +10,7 @@ public class Landscape : MonoBehaviour
     public DrawMode drawMode;
 
     [Header("HeightMap & Mesh Parameters")]
-    const int mapChunkSize = 241;//map size
+    public const int mapChunkSize = 241;//map size
     [Range(0,6)]
     public int levelOfDetail;//rate of meshes which are drawn
     private int width;
