@@ -3,15 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
+
+//Fonctions to create/render mesh and texture
 public static class Util
 {
+    //Noise creation, for the disposition of elements (Vertice, pixels)
     public static float[,] CreatePerlinNoiseMap(int width, int height, int seed, float scale, int octaves = 0, float persistence = 1, float lacunarity = 1, Vector2? offset = null)
     {
-        Vector2 offsetVal = offset ?? Vector2.zero;
+        Vector2 offsetVal = offset ?? Vector2.zero;//optionnal element, (0,0) if no offset submitted
         float[,] heightMap = new float[width, height];
 
-        System.Random rng = new System.Random(seed);
-
+        System.Random rng = new System.Random(seed);//begins the random number generator to an integer fixed, to have the same number sequence each time.
+        //offset submitted at each octaves
         Vector2[] octavesOffsets = new Vector2[octaves];
 
         for (int i = 0; i < octaves; i++)
@@ -20,17 +23,17 @@ public static class Util
             float offsetY = rng.Next(-100000, 100000) + offsetVal.y;
             octavesOffsets[i] = new Vector2(offsetX, offsetY);
         }
-
+        //size of elements
         if (scale <= 0)
         {
             scale = 0.0001f;
         }
-
+        //interval of values for the whole heightmap
         float minHeight = float.MaxValue;
         float maxHeight = float.MinValue;
 
-        float halfWidth = width / 2f;
-        float halfHeight = height / 2f;
+        float halfWidth = width / 2f;//to scale on center
+        float halfHeight = height / 2f;//to scale on center
 
 
 
@@ -70,12 +73,13 @@ public static class Util
         {
             for (int j = 0; j < height; j++)
             {
-                heightMap[i, j] = Mathf.InverseLerp(minHeight, maxHeight, heightMap[i, j]);
+                heightMap[i, j] = Mathf.InverseLerp(minHeight, maxHeight, heightMap[i, j]);//to rescale [-1,1] perlin values, into [0,1] height values (0 -> seas, 1-> mountains summits)
             }
         }
-        return heightMap;
+        return heightMap;//a grid with [0,1] values.
     }
 
+    //Set a grid color to a texture
     public static Texture2D textureGenerator(Color[] colorMap, int width, int height,FilterMode filtermode = FilterMode.Bilinear)
     {
         Texture2D texture = new Texture2D(width, height);
@@ -86,6 +90,7 @@ public static class Util
         return texture;
     }
 
+    //Creates a greyScale color array with a 2D Grid and generate the texture
     public static Texture2D textureGenerator(float [,] map, FilterMode mode = FilterMode.Bilinear)
     {
         int width = map.GetLength(0);
@@ -96,12 +101,13 @@ public static class Util
         {
             for (int i = 0; i < width; i++)
             {
-                colorMap[j * width + i] = Color.Lerp(Color.black, Color.white, map[i, j]);
+                colorMap[j * width + i] = Color.Lerp(Color.black, Color.white, map[i, j]);//Linear Interpolation, to have a Color value beetween black and white, with a map element
             }
         }
         return textureGenerator(colorMap,width,height,mode);
     }
 
+    //Render a texture into a Renderer
     public static void RenderMap(Renderer textureRenderer, Texture2D texture)
     {
         int width = texture.width;
@@ -110,6 +116,7 @@ public static class Util
         textureRenderer.transform.localScale = new Vector3(width, 1, height);
     }
 
+    //Mesh generation, with a heightMap, heightRate, a curve, and a level of details (number of edges)
     public static MeshDatas GenerateMesh(float[,] heightMap,float heightRate = 1, AnimationCurve heightCurve = null, int levelOfDetail = 0)
     {
         int width = heightMap.GetLength(0);
@@ -118,7 +125,7 @@ public static class Util
         float topLeftZ = (height - 1f) / 2f;
 
 
-        int meshDetails = levelOfDetail * 2;
+        int meshDetails = levelOfDetail * 2;//to have 1 edge of 1,2,4,6,8,10,12 drawn 
         if (meshDetails == 0)
         {
             meshDetails = 1;
@@ -130,20 +137,20 @@ public static class Util
 
         MeshDatas mesh = new MeshDatas(verticePerLine, verticePerColumns);
         int vertexIndex = 0;
-        for (int j = 0; j < height; j+= meshDetails)
+        for (int j = 0; j < height; j+= meshDetails)// draw 1 edge of meshDetails on the heightMap
         {
             for (int i = 0; i < width; i+=meshDetails)
             {
-                if (heightCurve == null)
+                if (heightCurve == null)//vertice
                 {
                     mesh.vertices[vertexIndex] = new Vector3(topLeftX + i, heightMap[i, j] * heightRate, topLeftZ - j);
                 } else
                 {
                     mesh.vertices[vertexIndex] = new Vector3(topLeftX + i, heightCurve.Evaluate(heightMap[i, j]) * heightRate, topLeftZ - j);
                 }
-                mesh.uvs[vertexIndex] = new Vector2(i / (float)width, j / (float)height);
+                mesh.uvs[vertexIndex] = new Vector2(i / (float)width, j / (float)height);//textures
 
-                if (i < width - 1 && j < height - 1)
+                if (i < width - 1 && j < height - 1)//edges
                 {
                     mesh.AddTriangle(vertexIndex, vertexIndex + verticePerLine + 1, vertexIndex + verticePerLine);
                     mesh.AddTriangle(vertexIndex + verticePerLine + 1, vertexIndex, vertexIndex + 1);
@@ -176,6 +183,7 @@ public class MeshDatas
         triangles.Add(c);
     }
 
+    //Generate a Mesh with a meshDatas Oject
     public Mesh CreateMesh()
     {
         Mesh mesh = new Mesh();

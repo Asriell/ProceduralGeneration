@@ -2,34 +2,36 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+//Landscape Generation
 public class Landscape : MonoBehaviour
 {
-
+    #region Parameters
     public enum DrawMode { NoiseMap, ColorMap, Mesh}
     public DrawMode drawMode;
 
     [Header("HeightMap & Mesh Parameters")]
-    const int mapChunkSize = 241;
+    const int mapChunkSize = 241;//map size
     [Range(0,6)]
-    public int levelOfDetail;
+    public int levelOfDetail;//rate of meshes which are drawn
     private int width;
     private int height;
-    public float scale;
-    public int octaves;
+    public float scale;//height of the mesh
+    public int octaves;//number of iterations on generation step
     [Range(0,1)]
-    public float persistence;
-    public float lacunarity;
-    public int seed;
-    public Vector2 offset;
-    public float heightRateMesh;
-    public AnimationCurve heightCurve;
+    public float persistence;//density of elements, difference between high points and lower points (amplitude)
+    public float lacunarity;//size of each elements
+    public int seed;//for the noise generation
+    public Vector2 offset;//map position
+    public float heightRateMesh;//how much the elements will grow in the mesh
+    public AnimationCurve heightCurve;//how much each element will be influenced in the mesh
 
     [Header("Landscape Parameter")]
-    public LandscapeType[] landscapeType;
+    public LandscapeType[] landscapeType;//type of each element
 
 
-    public bool autoUpdate;
-
+    public bool autoUpdate;//editor auto update
+    #endregion
+    //Map Generation and display
     public void Generate()
     {
         width = mapChunkSize;
@@ -37,7 +39,7 @@ public class Landscape : MonoBehaviour
         float[,] heightMap = Util.CreatePerlinNoiseMap(width, height, seed, scale, octaves, persistence, lacunarity, offset);
 
         Color[] mapColor = new Color[width*height];
-
+        //color setup, depends of the landscape color
         for (int j = 0; j < height; j++) {
             for (int i = 0; i < width; i++)
             {
@@ -53,7 +55,7 @@ public class Landscape : MonoBehaviour
             }
         }
         MapDisplay display = FindObjectOfType<MapDisplay>();
-
+        //display, depends of the drawmode.
         if (drawMode == DrawMode.NoiseMap)
         {
             display.DrawMap(Util.textureGenerator(heightMap,FilterMode.Point));
@@ -67,6 +69,7 @@ public class Landscape : MonoBehaviour
         }
     }
 
+    //To only have authorized values
     public void OnValidate()
     {
         if (lacunarity < 1)
@@ -81,11 +84,11 @@ public class Landscape : MonoBehaviour
     }
 }
 
-
+//Landscape type, growing order
 [System.Serializable]
 public class LandscapeType
 {
     public string name;
-    public float height;
+    public float height;//beetween 0 and 1 ! Growing order
     public Color color;
 }
