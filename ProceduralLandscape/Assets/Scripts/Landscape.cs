@@ -14,7 +14,7 @@ public class Landscape : MonoBehaviour
     [Header("HeightMap & Mesh Parameters")]
     public const int mapChunkSize = 241;//map size
     [Range(0,6)]
-    public int levelOfDetail;//rate of meshes which are drawn
+    public int levelOfDetailOnEditor;//rate of meshes which are drawn
     private int width;
     private int height;
     public float scale;//height of the mesh
@@ -52,40 +52,40 @@ public class Landscape : MonoBehaviour
         }
         else if (drawMode == DrawMode.Mesh)
         {
-            display.DrawMeshes(Util.GenerateMesh(mapData.heightMap, heightRateMesh, heightCurve, levelOfDetail), Util.textureGenerator(mapData.mapColor, width, height, FilterMode.Point));
+            display.DrawMeshes(Util.GenerateMesh(mapData.heightMap, heightRateMesh, heightCurve, levelOfDetailOnEditor), Util.textureGenerator(mapData.mapColor, width, height, FilterMode.Point));
         }
     }
 
-    public void RequestMapData(Action<MapData> callback)
+    public void RequestMapData(Vector2 center,Action<MapData> callback)
     {
         ThreadStart threadStart = delegate
         {
-            MapDataThread(callback);
+            MapDataThread(center,callback);
         };
         new Thread(threadStart).Start();
     }
 
-    void MapDataThread(Action<MapData> callback)
+    void MapDataThread(Vector2 center,Action<MapData> callback)
     {
-        MapData mapData = DatasGeneration();
+        MapData mapData = DatasGeneration(center);
         lock (mapDataThreadInfoQueue)
         {
             mapDataThreadInfoQueue.Enqueue(new MapThreadInfo<MapData>(callback, mapData));
         }
     }
 
-    public void RequestMeshDatas(MapData mapData, Action<MeshDatas> callback)
+    public void RequestMeshDatas(MapData mapData, int lod, Action<MeshDatas> callback)
     {
         ThreadStart threadStart = delegate
         {
-            MeshDatasThread(mapData,callback);
+            MeshDatasThread(mapData,lod,callback);
         };
         new Thread(threadStart).Start();
     }
 
-    public void MeshDatasThread(MapData mapData, Action<MeshDatas> callback)
+    public void MeshDatasThread(MapData mapData,int lod, Action<MeshDatas> callback)
     {
-        MeshDatas meshDatas = Util.GenerateMesh(mapData.heightMap, heightRateMesh, heightCurve,levelOfDetail);
+        MeshDatas meshDatas = Util.GenerateMesh(mapData.heightMap, heightRateMesh, heightCurve,lod);
         lock (meshDataThreadInfoQueue)
         {
             meshDataThreadInfoQueue.Enqueue(new MapThreadInfo<MeshDatas>(callback, meshDatas));
@@ -122,6 +122,32 @@ public class Landscape : MonoBehaviour
         Color[] mapColor = new Color[width*height];
         //color setup, depends of the landscape color
         for (int j = 0; j < height; j++) {
+            for (int i = 0; i < width; i++)
+            {
+                float currentHeight = heightMap[i, j];
+                for (int k = 0; k < landscapeType.Length; k++)
+                {
+                    if (currentHeight <= landscapeType[k].height)
+                    {
+                        mapColor[j * width + i] = landscapeType[k].color;
+                        break;
+                    }
+                }
+            }
+        }
+        return new MapData(heightMap, mapColor);
+    }
+
+    public MapData DatasGeneration(Vector2 center)
+    {
+        width = mapChunkSize;
+        height = mapChunkSize;
+        float[,] heightMap = Util.CreatePerlinNoiseMap(width, height, seed, scale, octaves, persistence, lacunarity, center + offset);
+
+        Color[] mapColor = new Color[width * height];
+        //color setup, depends of the landscape color
+        for (int j = 0; j < height; j++)
+        {
             for (int i = 0; i < width; i++)
             {
                 float currentHeight = heightMap[i, j];
