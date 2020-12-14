@@ -33,8 +33,8 @@ public class Landscape : MonoBehaviour
 
     public bool autoUpdate;//editor auto update
 
-    Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
-    Queue<MapThreadInfo<MeshDatas>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshDatas>>();
+    Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>(); //Map datas to send when computed
+    Queue<MapThreadInfo<MeshDatas>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshDatas>>(); //Meshes datas to send when computed
     #endregion
 
     public void DrawMapInEditor()
@@ -56,7 +56,8 @@ public class Landscape : MonoBehaviour
         }
     }
 
-    public void RequestMapData(Vector2 center,Action<MapData> callback)
+    #region Threads
+    public void RequestMapData(Vector2 center,Action<MapData> callback) //starts a thread whiwh computes the map
     {
         ThreadStart threadStart = delegate
         {
@@ -68,13 +69,13 @@ public class Landscape : MonoBehaviour
     void MapDataThread(Vector2 center,Action<MapData> callback)
     {
         MapData mapData = DatasGeneration(center);
-        lock (mapDataThreadInfoQueue)
+        lock (mapDataThreadInfoQueue) //semaphore, avoid two threads to enqueue a data at the same time
         {
             mapDataThreadInfoQueue.Enqueue(new MapThreadInfo<MapData>(callback, mapData));
         }
     }
 
-    public void RequestMeshDatas(MapData mapData, int lod, Action<MeshDatas> callback)
+    public void RequestMeshDatas(MapData mapData, int lod, Action<MeshDatas> callback) //same as RequestMapData
     {
         ThreadStart threadStart = delegate
         {
@@ -83,7 +84,7 @@ public class Landscape : MonoBehaviour
         new Thread(threadStart).Start();
     }
 
-    public void MeshDatasThread(MapData mapData,int lod, Action<MeshDatas> callback)
+    public void MeshDatasThread(MapData mapData,int lod, Action<MeshDatas> callback) //same as MapDataThread
     {
         MeshDatas meshDatas = Util.GenerateMesh(mapData.heightMap, heightRateMesh, heightCurve,lod);
         lock (meshDataThreadInfoQueue)
@@ -92,9 +93,11 @@ public class Landscape : MonoBehaviour
         }
     }
 
+    #endregion
+
     private void Update()
     {
-        if(mapDataThreadInfoQueue.Count > 0)
+        if(mapDataThreadInfoQueue.Count > 0) //callback for each compuited map
         {
             for (int i = 0; i < mapDataThreadInfoQueue.Count;i++)
             {
@@ -103,7 +106,7 @@ public class Landscape : MonoBehaviour
             }
         }
 
-        if (meshDataThreadInfoQueue.Count > 0)
+        if (meshDataThreadInfoQueue.Count > 0) //callback for each computed mesh
         {
             for (int i = 0; i < meshDataThreadInfoQueue.Count; i++)
             {
