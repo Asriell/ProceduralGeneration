@@ -1,6 +1,12 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Streams an infinite terrain by dividing the world into square chunks.
+/// Each frame, chunks within <see cref="maxViewDist"/> units of the viewer are activated;
+/// chunks outside that radius are deactivated to save draw calls.
+/// New chunks are created on demand and cached for subsequent visits.
+/// </summary>
 public class EndlessMap : MonoBehaviour
 {
     public const float maxViewDist = 300;
@@ -36,6 +42,10 @@ public class EndlessMap : MonoBehaviour
         UpdateVisibleChunk();
     }
 
+    /// <summary>
+    /// Hides all previously visible chunks, then activates or creates every chunk
+    /// whose grid coordinates fall within the viewer's visible range.
+    /// </summary>
     public void UpdateVisibleChunk()
     {
         foreach (Chunk chunk in chunksVisiblesLastUpdate)
@@ -63,6 +73,10 @@ public class EndlessMap : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Represents one terrain tile. On construction it generates its heightmap, colour
+    /// map, mesh and texture, then spawns a GameObject at the correct world position.
+    /// </summary>
     public class Chunk
     {
         public GameObject meshObject;
@@ -104,6 +118,7 @@ public class EndlessMap : MonoBehaviour
             mr.material.mainTexture = texture;
         }
 
+        /// <summary>Shows or hides the chunk based on the viewer's current distance to its bounds.</summary>
         public void UpdateChunk()
         {
             float dist = Mathf.Sqrt(bounds.SqrDistance(viewerPosition));

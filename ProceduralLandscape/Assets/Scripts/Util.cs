@@ -4,10 +4,26 @@ using UnityEngine;
 using UnityEngine.AI;
 
 
-//Fonctions to create/render mesh and texture
+/// <summary>
+/// Static toolkit that centralises all procedural-generation primitives:
+/// noise sampling, texture baking, mesh construction and rendering helpers.
+/// All methods are stateless – pass data in, get results out.
+/// </summary>
 public static class Util
 {
-    //Noise creation, for the disposition of elements (Vertice, pixels)
+    /// <summary>
+    /// Generates a 2D Perlin noise heightmap by stacking <paramref name="octaves"/> noise layers
+    /// (FBM), then normalises the result to [0, 1].
+    /// </summary>
+    /// <param name="width">Number of columns in the output grid.</param>
+    /// <param name="height">Number of rows in the output grid.</param>
+    /// <param name="seed">Determines the random per-octave offsets; identical seeds produce identical maps.</param>
+    /// <param name="scale">Zoom level of the noise field – larger values = broader, smoother features.</param>
+    /// <param name="octaves">How many noise layers to stack; more layers add finer surface detail.</param>
+    /// <param name="persistence">Amplitude factor applied each octave (0-1): lower = softer, flatter terrain.</param>
+    /// <param name="lacunarity">Frequency factor applied each octave (≥1): higher = more high-frequency detail.</param>
+    /// <param name="offset">World-space shift used to sample a different region of the noise field.</param>
+    /// <returns>A [width, height] array with values remapped to [0, 1] (0 = lowest point, 1 = highest).</returns>
     public static float[,] CreatePerlinNoiseMap(int width, int height, int seed, float scale, int octaves = 0, float persistence = 1, float lacunarity = 1, Vector2? offset = null)
     {
         Vector2 offsetVal = offset ?? Vector2.zero;//optionnal element, (0,0) if no offset submitted
@@ -79,7 +95,13 @@ public static class Util
         return heightMap;//a grid with [0,1] values.
     }
 
-    //Set a grid color to a texture
+    /// <summary>
+    /// Bakes a flat colour array into a <see cref="Texture2D"/> with clamped wrapping.
+    /// </summary>
+    /// <param name="colorMap">Row-major colour array of length width × height.</param>
+    /// <param name="width">Texture width in pixels.</param>
+    /// <param name="height">Texture height in pixels.</param>
+    /// <param name="filtermode">GPU filter applied when the texture is scaled on screen.</param>
     public static Texture2D textureGenerator(Color[] colorMap, int width, int height,FilterMode filtermode = FilterMode.Bilinear)
     {
         Texture2D texture = new Texture2D(width, height);
@@ -90,7 +112,12 @@ public static class Util
         return texture;
     }
 
-    //Creates a greyScale color array with a 2D Grid and generate the texture
+    /// <summary>
+    /// Converts a 2D float heightmap to a greyscale <see cref="Texture2D"/> (0 = black, 1 = white).
+    /// Delegates to <see cref="textureGenerator(Color[],int,int,FilterMode)"/> after building the colour array.
+    /// </summary>
+    /// <param name="map">Heightmap with values in [0, 1].</param>
+    /// <param name="mode">GPU filter applied when the texture is scaled on screen.</param>
     public static Texture2D textureGenerator(float [,] map, FilterMode mode = FilterMode.Bilinear)
     {
         int width = map.GetLength(0);
@@ -107,7 +134,10 @@ public static class Util
         return textureGenerator(colorMap,width,height,mode);
     }
 
-    //Render a texture into a Renderer
+    /// <summary>
+    /// Assigns <paramref name="texture"/> to a renderer's shared material and resizes the
+    /// GameObject's local scale so one unit = one texel (useful for flat preview quads).
+    /// </summary>
     public static void RenderMap(Renderer textureRenderer, Texture2D texture)
     {
         int width = texture.width;
@@ -116,7 +146,20 @@ public static class Util
         textureRenderer.transform.localScale = new Vector3(width, 1, height);
     }
 
-    //Mesh generation, with a heightMap, heightRate, a curve, and a level of details (number of edges)
+    /// <summary>
+    /// Builds a quad-grid mesh from a heightmap with optional LOD decimation and curve remapping.
+    /// </summary>
+    /// <param name="heightMap">Source elevation data; values expected in [0, 1].</param>
+    /// <param name="heightRate">Vertical scale multiplier applied to every vertex.</param>
+    /// <param name="heightCurve">
+    /// Optional animation curve that remaps [0,1] height values before scaling,
+    /// allowing non-linear elevation profiles (e.g. flat water, steep cliffs).
+    /// Pass <c>null</c> to use a linear mapping.
+    /// </param>
+    /// <param name="levelOfDetail">
+    /// 0 = full resolution; 1-6 = increasingly coarse (every 2, 4, 6, 8, 10, 12 vertices sampled).
+    /// </param>
+    /// <returns>A <see cref="MeshDatas"/> ready to be finalised with <see cref="MeshDatas.CreateMesh"/>.</returns>
     public static MeshDatas GenerateMesh(float[,] heightMap,float heightRate = 1, AnimationCurve heightCurve = null, int levelOfDetail = 0)
     {
         int width = heightMap.GetLength(0);
@@ -163,6 +206,11 @@ public static class Util
     }
 }
 
+/// <summary>
+/// Intermediate container that accumulates raw mesh data (vertices, triangles, UVs)
+/// before it is committed to a Unity <see cref="Mesh"/> via <see cref="CreateMesh"/>.
+/// Pre-allocates arrays to avoid per-vertex allocations during mesh generation.
+/// </summary>
 public class MeshDatas
 {
     public Vector3[] vertices;
@@ -176,6 +224,7 @@ public class MeshDatas
         triangles = new List<int>();
     }
 
+    /// <summary>Appends one triangle by its three vertex indices (counter-clockwise winding).</summary>
     public void AddTriangle(int a, int b, int c)
     {
         triangles.Add(a);
@@ -183,7 +232,7 @@ public class MeshDatas
         triangles.Add(c);
     }
 
-    //Generate a Mesh with a meshDatas Oject
+    /// <summary>Finalises the accumulated data into a Unity <see cref="Mesh"/> with recalculated normals.</summary>
     public Mesh CreateMesh()
     {
         Mesh mesh = new Mesh();

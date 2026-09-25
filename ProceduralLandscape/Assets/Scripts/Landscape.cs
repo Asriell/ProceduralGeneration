@@ -2,7 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-//Landscape Generation
+/// <summary>
+/// Single-chunk terrain generator. Attach to a GameObject in the Editor scene.
+/// Exposes all noise and mesh parameters in the Inspector and regenerates the preview
+/// whenever <see cref="Generate"/> is called (or automatically when <see cref="autoUpdate"/> is on).
+/// </summary>
 public class Landscape : MonoBehaviour
 {
     #region Parameters
@@ -31,7 +35,10 @@ public class Landscape : MonoBehaviour
 
     public bool autoUpdate;//editor auto update
     #endregion
-    //Map Generation and display
+    /// <summary>
+    /// Samples a Perlin noise heightmap, assigns biome colours per pixel, then renders
+    /// either a flat noise preview, a colour map, or a full 3-D mesh depending on <see cref="drawMode"/>.
+    /// </summary>
     public void Generate()
     {
         width = mapChunkSize;
@@ -69,7 +76,7 @@ public class Landscape : MonoBehaviour
         }
     }
 
-    //To only have authorized values
+    /// <summary>Clamps Inspector parameters to valid ranges so the noise algorithm never receives illegal inputs.</summary>
     public void OnValidate()
     {
         if (lacunarity < 1)
@@ -84,7 +91,10 @@ public class Landscape : MonoBehaviour
     }
 }
 
-//Landscape type, growing order
+/// <summary>
+/// Defines one biome layer: an upper height threshold and the colour applied to all
+/// pixels at or below it. Entries must be ordered from lowest to highest <see cref="height"/>.
+/// </summary>
 [System.Serializable]
 public class LandscapeType
 {
