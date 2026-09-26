@@ -11,12 +11,12 @@ public class ScriptEditor : Editor
         Landscape map = (Landscape)target;
         if (DrawDefaultInspector() && map.autoUpdate)
         {
-            map.Generate();
+            map.DrawMapInEditor();
         }
 
         if (GUILayout.Button("Generate !"))
         {
-            map.Generate();
+            map.DrawMapInEditor();
         }
     }
 }

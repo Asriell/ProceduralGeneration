@@ -11,6 +11,11 @@ using UnityEngine.AI;
 /// </summary>
 public static class Util
 {
+    public enum NormalizationMode
+    {
+        Local,
+        Global
+    }
     /// <summary>
     /// Generates a 2D Perlin noise heightmap by stacking <paramref name="octaves"/> noise layers
     /// (FBM), then normalises the result to [0, 1].
@@ -24,20 +29,27 @@ public static class Util
     /// <param name="lacunarity">Frequency factor applied each octave (≥1): higher = more high-frequency detail.</param>
     /// <param name="offset">World-space shift used to sample a different region of the noise field.</param>
     /// <returns>A [width, height] array with values remapped to [0, 1] (0 = lowest point, 1 = highest).</returns>
-    public static float[,] CreatePerlinNoiseMap(int width, int height, int seed, float scale, int octaves = 0, float persistence = 1, float lacunarity = 1, Vector2? offset = null)
+    public static float[,] CreatePerlinNoiseMap(int width, int height, int seed, float scale, int octaves = 0, float persistence = 1, float lacunarity = 1, Vector2? offset = null, NormalizationMode normalizationMode = NormalizationMode.Local)
     {
+        float amplitude = 1;
+        float frequency = 1;
+
+        float noiseHeight = 0;
         Vector2 offsetVal = offset ?? Vector2.zero;//optionnal element, (0,0) if no offset submitted
         float[,] heightMap = new float[width, height];
 
         System.Random rng = new System.Random(seed);//begins the random number generator to an integer fixed, to have the same number sequence each time.
         //offset submitted at each octaves
         Vector2[] octavesOffsets = new Vector2[octaves];
+        float maxPossibleHeight = 0;
 
         for (int i = 0; i < octaves; i++)
         {
             float offsetX = rng.Next(-100000,100000) + offsetVal.x;
-            float offsetY = rng.Next(-100000, 100000) + offsetVal.y;
+            float offsetY = rng.Next(-100000, 100000) - offsetVal.y;
             octavesOffsets[i] = new Vector2(offsetX, offsetY);
+            maxPossibleHeight += amplitude;
+            amplitude *= persistence;
         }
         //size of elements
         if (scale <= 0)
@@ -57,15 +69,15 @@ public static class Util
         {
             for (int j = 0; j < height; j++)
             {
-                float amplitude = 1;
-                float frequency = 1;
+                amplitude = 1;
+                frequency = 1;
 
-                float noiseHeight = 0;
+                noiseHeight = 0;
 
                 for (int k = 0; k < octaves; k++)
                 {
-                    float Scalei = (i - halfWidth) / scale * frequency + octavesOffsets[k].x;
-                    float Scalej = (j - halfHeight) / scale * frequency + octavesOffsets[k].y;
+                    float Scalei = (i - halfWidth + octavesOffsets[k].x) / scale * frequency ;
+                    float Scalej = (j - halfHeight + octavesOffsets[k].y) / scale * frequency ;
                     float perlinValue = Mathf.PerlinNoise(Scalei, Scalej) * 2 - 1;
                     noiseHeight += perlinValue * amplitude;
                     
@@ -89,7 +101,14 @@ public static class Util
         {
             for (int j = 0; j < height; j++)
             {
-                heightMap[i, j] = Mathf.InverseLerp(minHeight, maxHeight, heightMap[i, j]);//to rescale [-1,1] perlin values, into [0,1] height values (0 -> seas, 1-> mountains summits)
+                if (normalizationMode == NormalizationMode.Local)
+                {
+                    heightMap[i, j] = Mathf.InverseLerp(minHeight, maxHeight, heightMap[i, j]);//to rescale [-1,1] perlin values, into [0,1] height values (0 -> seas, 1-> mountains summits)
+                }
+                else if (normalizationMode == NormalizationMode.Global)
+                {
+                    heightMap[i, j] = (heightMap[i, j] + 1) / (2f * maxPossibleHeight);//Global normalization assuming perlin noise is in [-1,1]
+                }
             }
         }
         return heightMap;//a grid with [0,1] values.
@@ -160,8 +179,9 @@ public static class Util
     /// 0 = full resolution; 1-6 = increasingly coarse (every 2, 4, 6, 8, 10, 12 vertices sampled).
     /// </param>
     /// <returns>A <see cref="MeshDatas"/> ready to be finalised with <see cref="MeshDatas.CreateMesh"/>.</returns>
-    public static MeshDatas GenerateMesh(float[,] heightMap,float heightRate = 1, AnimationCurve heightCurve = null, int levelOfDetail = 0)
+    public static MeshDatas GenerateMesh(float[,] heightMap,float heightRate = 1, AnimationCurve _heightCurve = null, int levelOfDetail = 0)
     {
+        AnimationCurve heightCurve = _heightCurve != null ? new AnimationCurve(_heightCurve.keys) : null;
         int width = heightMap.GetLength(0);
         int height = heightMap.GetLength(1);
         float topLeftX = (width - 1f) / (-2f);
